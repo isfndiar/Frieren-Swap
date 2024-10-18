@@ -1,10 +1,10 @@
+import Address from "@/components/fragment/Address";
 import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
-import Address from "@/components/fragment/Address";
 
 describe("Address Component", () => {
-  it("render page", () => {
-    const page = render(<Address />);
-    expect(page).toMatchSnapshot();
+  it("should render the Address component correctly", () => {
+    const { container } = render(<Address />);
+    expect(container).toMatchSnapshot();
   });
 });
