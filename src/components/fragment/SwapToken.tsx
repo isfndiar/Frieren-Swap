@@ -1,25 +1,30 @@
 "use client";
-import HeaderMoved from "./HeaderMoved";
-import SlipPage from "./SlipPage";
-import { Input } from "../ui/input";
 import { ChangeEvent, useEffect, useState } from "react";
-import tokenList from "@/app/tokenList.json";
-import Image from "next/image";
+import {
+  useAccount,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { ArrowDownUp, ChevronDown } from "lucide-react";
-import { Button } from "../ui/button";
-import { useAccount, useSendTransaction } from "wagmi";
-import useConnectMetamask from "@/hook/useConnectMetamask";
-import { priceProps } from "@/lib/types";
-import Modal from "./Modal";
-import axios from "axios";
+import { Input } from "../ui/input";
 import { toast } from "sonner";
+import { Button } from "../ui/button";
+import { priceProps } from "@/lib/types";
+import useConnectMetamask from "@/hook/useConnectMetamask";
+import HeaderMoved from "./HeaderMoved";
+import tokenList from "@/app/tokenList.json";
+import SlipPage from "./SlipPage";
+import Image from "next/image";
+import Modal from "./Modal";
 
 type txDetailsProps = {
   to: `0x${string}` | null | undefined;
   data: `0x${string}` | undefined;
   value: bigint | undefined;
 };
+
 const TOKEN_API_INCH = "Bearer " + process.env.NEXT_PUBLIC_API_INCH;
+
 const configHeaders = {
   method: "GET",
   headers: {
@@ -47,8 +52,11 @@ const SwapToken = () => {
     value: undefined,
   });
   const { connect, connector, hydration } = useConnectMetamask();
-  const { sendTransaction } = useSendTransaction();
-
+  const { sendTransaction, data } = useSendTransaction();
+  const { isError, isLoading, isSuccess } = useWaitForTransactionReceipt({
+    hash: data,
+  });
+  console.log(isSuccess, isError, isLoading);
   const switchToken = () => {
     const one = tokenOne;
     const two = tokenTwo;
@@ -76,36 +84,47 @@ const SwapToken = () => {
   const fetchDexSwap = async () => {
     if (isConnected && hydration) {
       try {
-        const response = await axios.get(
-          `https://api.1inch.dev/swap/v6.0/1/approve/allowance?tokenAddress=${tokenOne.address}&walletAddress=${address}`,
-          configHeaders
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API_KEY}/api/swap`,
+          {
+            method: "POST",
+            body: JSON.stringify({ tokenOne, address }),
+          }
         );
-        if (response.data.allowance == 0) {
-          const approve = await axios.get(
-            `https://api.1inch.dev/swap/v6.0/1/approve/transaction?tokenAddress=${tokenOne.address}`,
-            configHeaders
+
+        const response = await res.json();
+        if (response.allowance == 0) {
+          const resApprove = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_API_KEY}/api/allowance`,
+            {
+              method: "POST",
+              body: JSON.stringify({ tokenOne }),
+            }
           );
-          setTxDetails(approve.data);
+          const approve = await resApprove.json();
+          sendTransaction({
+            to: approve.to,
+            data: approve.data,
+            value: approve.value,
+          });
           console.log("Not Approve");
           return;
         }
 
-        const tx = await axios.get(`https://api.1inch.dev/swap/v6.0/1/swap`, {
-          headers: {
-            Authorization: TOKEN_API_INCH,
-          },
-          params: {
-            src: tokenOne.address,
-            dst: tokenTwo.address,
-            amount: tokenOneAmount.padEnd(
-              tokenOne.decimals + tokenOneAmount.length,
-              "0"
-            ),
-            from: address,
-            origin: address,
-            slippage: slippage,
-          },
-        });
+        const resTx = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API_KEY}/api/swapToken`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              tokenOne,
+              tokenTwo,
+              tokenOneAmount,
+              address,
+              slippage,
+            }),
+          }
+        );
+        const { tx } = await resTx.json();
         const decimals = Number(`1E${tokenTwo.decimals}`);
 
         setTokenTwoAmount(
@@ -114,15 +133,9 @@ const SwapToken = () => {
         setTxDetails(tx.data.tx);
       } catch (error) {
         console.log(error);
-        toast.error(
-          ` Internal server error. please comeback after maintenance`,
-          {
-            position: "top-center",
-          }
-        );
-        console.log(
-          tokenOneAmount.padEnd(tokenOne.decimals + tokenOneAmount.length, "0")
-        );
+        toast.error(` many to request. please comeback after few hours`, {
+          position: "top-center",
+        });
       }
     } else {
       connect({ connector });
@@ -132,7 +145,6 @@ const SwapToken = () => {
   const openModal = (asset: number) => {
     setChangeToken(asset);
     setIsOpen(true);
-    console.log(asset);
   };
 
   const modify = (e: number) => {

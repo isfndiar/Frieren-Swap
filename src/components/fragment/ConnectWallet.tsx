@@ -1,6 +1,4 @@
 "use client";
-
-import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import FilterAddress from "../ui/filterAddress";
@@ -9,22 +7,19 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import useHydration from "@/hook/useHydration";
 
 const ConnectWallet = () => {
   const { connect, connectors } = useConnect();
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
-  const [isHydrate, setIsHydrate] = useState<boolean>();
+  const { hydration } = useHydration();
   const connector = connectors[0];
-  useEffect(() => {
-    setIsHydrate(true);
-  }, []);
-
   return (
     <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
-      {isConnected && isHydrate ? (
+      {isConnected && hydration ? (
         <>
-          {isConnected && isHydrate ? (
+          {isConnected && hydration ? (
             <HoverCard>
               <HoverCardTrigger>
                 <Button className="block rounded-full bg-transparent border border-transparent hover:border-green-tea hover:bg-transparent">

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import Moralis from "moralis";
-
+import cors from "cors";
 if (!Moralis.Core.isStarted) {
   Moralis.start({
     apiKey: process.env.MORALIS_API_KEY,
   });
 }
+cors();
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const addressOne = searchParams.get("addressOne") || "";
