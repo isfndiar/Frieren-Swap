@@ -66,6 +66,7 @@ const SwapToken = () => {
     setTokenTwo(one);
     getTokenPrice(tokenTwo.address, tokenOne.address);
   };
+
   const handleSlippage = (e: string) => {
     setSlippage(e);
     setOpenSlippage(false);
