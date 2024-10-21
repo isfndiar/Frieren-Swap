@@ -40,6 +40,7 @@ const SwapToken = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [changeToken, setChangeToken] = useState<number>(1);
   const { isConnected, address } = useAccount();
+  const [toastId, setToastId] = useState<number | string>("");
   const [txDetails, setTxDetails] = useState<txDetailsProps>({
     to: null,
     data: undefined,
@@ -67,11 +68,9 @@ const SwapToken = () => {
   const changeAmount = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     const value = e.target.value;
-    // Regex hanya menerima angka, titik, dan koma
     const regex = /^[0-9.,]*$/;
-    // Mengecek apakah input sesuai dengan regex
     if (!regex.test(value)) {
-      toast.error("Input must be number");
+      toast.error("Input must be number", { position: "top-center" });
       return; // Jika tidak sesuai, hentikan eksekusi
     }
     setTokenOneAmount(value);
@@ -193,16 +192,22 @@ const SwapToken = () => {
 
   useEffect(() => {
     if (isPending) {
+      const id = toast.loading("Request", { position: "top-center" });
+      setToastId(id); // simpan ID toast loading
     }
   }, [isPending]);
+
   useEffect(() => {
     if (isError) {
-      toast.error("User Reject Request");
+      toast.dismiss(toastId); // tutup loading toast
+      toast.error("User Reject Request", { position: "top-center" });
     }
   }, [isError]);
+
   useEffect(() => {
     if (isSuccess) {
-      toast.success("Confirmed");
+      toast.dismiss(toastId); // tutup loading toast
+      toast.success("Confirmed", { position: "top-center" });
     }
   }, [isSuccess]);
 
