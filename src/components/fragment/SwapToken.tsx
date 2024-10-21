@@ -1,20 +1,14 @@
 "use client";
 import { ChangeEvent, useEffect, useState } from "react";
-import {
-  useAccount,
-  useSendTransaction,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { ArrowDownUp, ChevronDown } from "lucide-react";
-import { Input } from "../ui/input";
-import { toast } from "sonner";
-import { Button } from "../ui/button";
+import { useAccount, useSendTransaction } from "wagmi";
+import { TokenSwitchButton, TokenOne, TokenTwo } from "./TokenComponents";
 import { priceProps } from "@/lib/types";
+import { Button } from "../ui/button";
+import { toast } from "sonner";
+import AnimatedHeaderText from "./AnimatedHeaderText";
 import useConnectMetamask from "@/hook/useConnectMetamask";
-import HeaderMoved from "./HeaderMoved";
 import tokenList from "@/app/tokenList.json";
 import SlipPage from "./SlipPage";
-import Image from "next/image";
 import Modal from "./Modal";
 
 type txDetailsProps = {
@@ -52,11 +46,9 @@ const SwapToken = () => {
     value: undefined,
   });
   const { connect, connector, hydration } = useConnectMetamask();
-  const { sendTransaction, data } = useSendTransaction();
-  const { isError, isLoading, isSuccess } = useWaitForTransactionReceipt({
-    hash: data,
-  });
-  console.log(isSuccess, isError, isLoading);
+  const { sendTransaction, isError, isSuccess, isPending } =
+    useSendTransaction();
+
   const switchToken = () => {
     const one = tokenOne;
     const two = tokenTwo;
@@ -75,6 +67,13 @@ const SwapToken = () => {
   const changeAmount = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     const value = e.target.value;
+    // Regex hanya menerima angka, titik, dan koma
+    const regex = /^[0-9.,]*$/;
+    // Mengecek apakah input sesuai dengan regex
+    if (!regex.test(value)) {
+      toast.error("Input must be number");
+      return; // Jika tidak sesuai, hentikan eksekusi
+    }
     setTokenOneAmount(value);
     if (value == "" || (value == undefined && prices)) {
       setTokenTwoAmount("0");
@@ -192,9 +191,24 @@ const SwapToken = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txDetails, isConnected]);
 
+  useEffect(() => {
+    if (isPending) {
+    }
+  }, [isPending]);
+  useEffect(() => {
+    if (isError) {
+      toast.error("User Reject Request");
+    }
+  }, [isError]);
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Confirmed");
+    }
+  }, [isSuccess]);
+
   return (
     <>
-      <HeaderMoved />
+      <AnimatedHeaderText />
       <Modal
         open={isOpen}
         setIsOpen={setIsOpen}
@@ -209,93 +223,32 @@ const SwapToken = () => {
           open={openSlippage}
           setOpen={setOpenSlippage}
         />
-        {/* token 1 */}
-        <div className="w-full rounded-lg bg-input-dark py-4 pb-8 px-4  mt-2 font-mono">
-          <Header />
-          <main className="flex w-full justify-between items-center mt-3 ">
-            <Input
-              name="tokenOne"
-              placeholder="0"
-              value={tokenOneAmount || ""}
-              disabled={!prices}
-              onChange={changeAmount}
-              className="input-token "
-            />
-            <div
-              onClick={() => openModal(1)}
-              className="flex gap-2  justify-center items-center group cursor-pointer"
-            >
-              <Image
-                width={30}
-                height={30}
-                src={tokenOne.img}
-                alt={tokenOne.name}
-                className="object-cover"
-              />
-              <span className="text-xl">{tokenOne.ticker}</span>
-              <ChevronDown />
-            </div>
-          </main>
-        </div>
-        {/* rotate componnetnt */}
-        <RotateToken onClick={switchToken} />
-        {/* token 2 */}
-        <div className="w-full rounded-lg bg-input-dark py-4 pb-8 px-4 font-mono">
-          <main className="flex justify-between items-center mt-3">
-            <Input
-              placeholder="0"
-              value={tokenTwoAmount || ""}
-              disabled={true}
-              className="input-token"
-            />
-            <div
-              onClick={() => openModal(2)}
-              className="flex gap-2  justify-center items-center group cursor-pointer"
-            >
-              <Image
-                width={30}
-                height={30}
-                src={tokenTwo.img}
-                alt={tokenTwo.name}
-                className="object-cover"
-              />
-              <span className="text-xl">{tokenTwo.ticker}</span>
-              <ChevronDown />
-            </div>
-          </main>
-        </div>
-
+        <TokenOne
+          handleModal={() => openModal(1)}
+          changeAmount={changeAmount}
+          prices={prices}
+          tokenOne={tokenOne}
+          tokenOneAmount={tokenOneAmount}
+        />
+        <TokenSwitchButton onClick={switchToken} />
+        <TokenTwo
+          handleModal={() => openModal(2)}
+          tokenTwo={tokenTwo}
+          tokenTwoAmount={tokenTwoAmount}
+        />
         <Button
-          disabled={isConnected && hydration && !tokenOneAmount}
+          disabled={!isConnected || !hydration || !tokenOneAmount || isPending}
           onClick={fetchDexSwap}
           className="w-full py-8 mt-7 rounded-lg  transition-all bg-green-leaf hover:bg-green-leaf text-green-tea text-xl border border-transparent hover:border-green-tea"
         >
-          {isConnected && hydration ? "Buy" : "Connect Wallet"}
+          {isConnected && hydration
+            ? "Buy"
+            : isPending
+            ? "Loading"
+            : "Connect Wallet"}
         </Button>
       </div>
     </>
-  );
-};
-
-const Header = () => {
-  return (
-    <header>
-      <span>{`You're`} Selling</span>
-      {/* balance token */}
-      {/* set max token */}
-    </header>
-  );
-};
-
-const RotateToken = ({ onClick }: { onClick: () => void }) => {
-  return (
-    <div className="w-full flex justify-center  my-2">
-      <ArrowDownUp
-        size={20}
-        onClick={onClick}
-        className="size-7 p-1 rounded-full  bg-input-black hover:cursor-pointer transition-all border border-transparent hover:border hover:border-[#C7F284]"
-      />
-    </div>
   );
 };
 

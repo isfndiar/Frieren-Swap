@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import Typed from "typed.js";
-const HeaderMoved = () => {
+const AnimatedHeaderText = () => {
   // Create reference to store the DOM element containing the animation
   const el = useRef(null);
 
@@ -28,4 +28,4 @@ const HeaderMoved = () => {
   );
 };
 
-export default HeaderMoved;
+export default AnimatedHeaderText;
